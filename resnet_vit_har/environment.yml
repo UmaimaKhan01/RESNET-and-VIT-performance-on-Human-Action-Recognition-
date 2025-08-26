@@ -1,0 +1,22 @@
+
+name: resnet-vit-har
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pytorch
+  - torchvision
+  - pytorch-cuda=12.1
+  - pip
+  - pip:
+      - timm==1.0.9
+      - torchmetrics==1.4.0
+      - scikit-learn==1.5.1
+      - opencv-python==4.10.0.84
+      - matplotlib==3.8.4
+      - pandas==2.2.2
+      - numpy==1.26.4
+      - ptflops==0.7.5
+      - tensorboard==2.17.0
