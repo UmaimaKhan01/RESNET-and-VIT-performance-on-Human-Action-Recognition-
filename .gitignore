@@ -1,0 +1,13 @@
+artifacts/
+checkpoints/
+outputs/
+logs/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.mp4
+*.zip
+*.pdf
+__pycache__/
+.ipynb_checkpoints/

@@ -59,18 +59,13 @@ python src/measure_model.py --model resnet18 --batch-size 64
 python src/measure_model.py --model vit_b16  --batch-size 32
 ```
 
-## 6) Demo & Video
-```bash
-python src/demo.py --checkpoint artifacts/vit_b16/best.pt --data_dir human-action-recognition/data/test --num 60 --make_video demo_out.mp4
-```
-
-## 7) Logs & Outputs
+## 6) Logs & Outputs
 - Training CSV: `logs/<exp>/training_log.csv`
 - Best checkpoint: `artifacts/<exp>/best.pt`
 - Eval JSON/CSV: in `logs/`
 - TensorBoard: `tensorboard --logdir logs`
 
-## 8) Shell shortcuts
+## 7) Shell shortcuts
 ```bash
 bash scripts/train_resnet.sh
 bash scripts/train_vit.sh
