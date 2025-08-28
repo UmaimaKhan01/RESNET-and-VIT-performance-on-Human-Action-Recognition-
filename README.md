@@ -1,73 +1,145 @@
+# Assignment 1: ResNet vs Vision Transformer for Human Action Recognition
 
-# ResNet18 vs ViT on Human Action Recognition
+## Overview
+This project compares **ResNet-18** and **ViT-B/16** on a Human Action Recognition dataset (~12.6k images, 15 classes). The focus is on both performance and computational trade-offs between CNNs and Transformers.
 
-Train and evaluate **ResNet18** and **ViT-B/16** on the Kaggle Human Action Recognition dataset (15 classes, ~12.6k images).
-Includes CLI scripts, logs, eval outputs, and demo/video utilities.
+- **ResNet-18** → lightweight, fast, efficient; excels in motion-heavy actions.  
+- **ViT-B/16** → heavy, slower, more accurate; stronger on subtle or static actions.
 
-## 1) Setup
+---
 
-### Conda
+## Environment Setup
+Experiments were run in a conda environment `gpu_env`:
+
 ```bash
-conda env create -f environment.yml
-conda activate resnet-vit-har
-```
-
-### venv + pip
-```bash
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+conda create -n gpu_env python=3.10 -y
+conda activate gpu_env
 pip install -r requirements.txt
 ```
 
-## 2) Dataset
+**Key packages**: `torch`, `torchvision`, `timm`, `albumentations`, `scikit-learn`, `matplotlib`, `opencv-python`.
 
-Expected layout:
-```
-human-action-recognition/
-└── data/
-    ├── train/
-    │   ├── class_a/ ...
-    │   └── ...
-    └── test/
-        ├── class_a/ ...
-        └── ...
-```
+---
 
-In Colab (if `archive.zip` is uploaded):
-```python
-import zipfile, os
-z = zipfile.ZipFile("archive.zip")
-z.extractall("human-action-recognition")
-print(os.listdir("human-action-recognition"))
-```
+## Dataset
 
-## 3) Train
-```bash
-python src/train.py --data_root human-action-recognition --model resnet18 --epochs 15 --batch-size 64 --precision fp16 --logdir logs --outdir artifacts/resnet18
-python src/train.py --data_root human-action-recognition --model vit_b16  --epochs 15 --batch-size 32 --precision fp16 --lr 5e-5 --weight-decay 0.05 --logdir logs --outdir artifacts/vit_b16
-```
+* 15 action classes (cycling, texting, running, etc.).
+* ~10,710 train images, ~1,890 test images.
+* Images resized to 224×224.
+* Augmentations: `RandomResizedCrop`, `RandomHorizontalFlip`, `AutoAugment`.
 
-## 4) Evaluate (test split)
-```bash
-python src/eval.py --data_root human-action-recognition --checkpoint artifacts/resnet18/best.pt --split test --out logs/resnet18_test_metrics.json
-python src/eval.py --data_root human-action-recognition --checkpoint artifacts/vit_b16/best.pt  --split test --out logs/vit_b16_test_metrics.json
-```
+---
 
-## 5) Computational metrics
-```bash
-python src/measure_model.py --model resnet18 --batch-size 64
-python src/measure_model.py --model vit_b16  --batch-size 32
+## Training Details
+
+* **Optimizer**: AdamW with cosine decay  
+* **Loss**: Cross-entropy  
+* **Precision**: Mixed FP16  
+* **Epochs**: 15  
+* **Batch sizes**: 64 (ResNet), 32 (ViT)  
+* **Learning rates**: 1e-3 (ResNet), 5e-5 (ViT)  
+* **Checkpointing**: Best model saved by validation accuracy  
+
+---
+
+## CLI Commands
+
+### 1. Activate Environment
+```powershell
+C:/Users/umaim/anaconda3/Scripts/activate
+conda activate gpu_env
 ```
 
-## 6) Logs & Outputs
-- Training CSV: `logs/<exp>/training_log.csv`
-- Best checkpoint: `artifacts/<exp>/best.pt`
-- Eval JSON/CSV: in `logs/`
-- TensorBoard: `tensorboard --logdir logs`
-
-## 7) Shell shortcuts
-```bash
-bash scripts/train_resnet.sh
-bash scripts/train_vit.sh
-bash scripts/eval_all.sh
+### 2. Navigate to Project
+```powershell
+cd .\Structured\
+cd .\resnet_vit_har\
 ```
+
+### 3. ResNet-18 Evaluation
+```powershell
+$ckpt_res = (Get-ChildItem artifacts\resnet18 -Recurse -Filter best.pt | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
+python src/eval.py --data_root "C:\Users\umaim\Downloads\archive\Structured" --checkpoint "$ckpt_res" --split test --out logs\resnet18_test_metrics.json
+```
+
+Inspect:
+```powershell
+Get-Content .\logs\resnet18_test_metrics.json
+```
+
+### 4. ViT-B/16 Evaluation
+```powershell
+$ckpt_vit = (Get-ChildItem artifacts\vit_b16 -Recurse -Filter best.pt | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
+python src/eval.py --data_root "C:\Users\umaim\Downloads\archive\Structured" --checkpoint "$ckpt_vit" --split test --out logs\vit_b16_test_metrics.json
+```
+
+Inspect:
+```powershell
+Get-Content .\logs\vit_b16_test_metrics.json
+```
+
+---
+
+## Results
+
+### Accuracy
+
+| Model     | Top-1 Acc | Macro F1 | Weighted F1 |
+| --------- | --------- | -------- | ----------- |
+| ResNet-18 | 78.0%     | 78.1%    | 78.1%       |
+| ViT-B/16  | 84.9%     | 84.8%    | 84.8%       |
+
+### Computational Costs
+
+| Model     | Params | FLOPs | Latency | Memory |
+| --------- | ------ | ----- | ------- | ------ |
+| ResNet-18 | 11.2M  | 1.8G  | 47 ms   | 480 MB |
+| ViT-B/16  | 85.8M  | 17.6G | 236 ms  | 594 MB |
+
+### Per-Class Performance
+- **ResNet-18**: excels on motion-heavy actions (cycling F1=0.97, running F1=0.86), struggles with static ones (texting F1=0.65, sitting F1=0.67).  
+- **ViT-B/16**: stronger on static actions (texting F1=0.78, sitting F1=0.72) due to attention-based context modeling.
+
+---
+
+## Failure Analysis
+
+* Misclassified images saved in `failure_cases_resnet/` and `failure_cases_vit/`.  
+* ResNet confuses **texting → calling**, ViT fixes this.  
+* ViT sometimes mislabels **hugging → laughing**.  
+
+---
+
+## Demo Outputs
+
+* Confusion matrices: `resnet18_cm.png`, `vit_b16_cm.png`  
+* Failure grids: `resnet_failure.png`, `vit_failure.png`  
+* Misclassification deltas: `delta_bar.png`  
+* Demo frames with labels: `demo_frames/`  
+
+---
+
+## Insights
+
+* **ResNet-18**  
+  - Small (11M params), efficient  
+  - Good for edge devices  
+  - Strong on high-motion actions  
+
+* **ViT-B/16**  
+  - Large (86M params), slower  
+  - Best on subtle/static actions  
+  - Ideal for accuracy-critical server tasks  
+
+**Conclusion**: ResNet is efficiency-first; ViT is accuracy-first.  
+
+---
+
+## Reproduction Steps
+
+1. Install dependencies via `requirements.txt`.  
+2. Run CLI commands for both models.  
+3. Check logs in `logs/`.  
+4. Inspect confusion matrices and failure cases.  
+
+---
